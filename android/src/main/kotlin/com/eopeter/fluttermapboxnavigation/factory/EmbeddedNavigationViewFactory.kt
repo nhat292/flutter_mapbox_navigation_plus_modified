@@ -12,14 +12,28 @@ import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 
+
 class EmbeddedNavigationViewFactory(
     private val messenger: BinaryMessenger,
     private val activity: Activity
 ) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
+
+    companion object {
+        private val bindings = mutableMapOf<Int, NavigationActivityBinding>()
+    }
+
     override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
         val inflater = LayoutInflater.from(context)
-        val binding = NavigationActivityBinding.inflate(inflater)
-        val accessToken = PluginUtilities.getResourceFromContext(context, "mapbox_access_token")
+
+        val binding = bindings[viewId] ?: run {
+            val newBinding = NavigationActivityBinding.inflate(inflater)
+            bindings[viewId] = newBinding
+            newBinding
+        }
+
+        val accessToken =
+            PluginUtilities.getResourceFromContext(context, "mapbox_access_token")
+
         val view = EmbeddedNavigationMapView(
             context,
             activity,
@@ -31,9 +45,10 @@ class EmbeddedNavigationViewFactory(
         )
 
         view.initialize()
-
-        activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_NoActionBar)
-
         return view
+    }
+
+    fun clearBinding(viewId: Int) {
+        bindings.remove(viewId)
     }
 }
