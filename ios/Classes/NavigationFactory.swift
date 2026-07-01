@@ -5,6 +5,25 @@ import MapboxDirections
 import MapboxCoreNavigation
 import MapboxNavigation
 
+extension UIApplication {
+    // Scene-based apps (UIApplicationSceneManifest configured, e.g. FlutterSceneDelegate)
+    // don't set UIApplicationDelegate.window, so that path returns nil there.
+    // Fall back to it only for apps still on the legacy window-based lifecycle.
+    var flutterRootViewController: FlutterViewController? {
+        let sceneWindow = connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow } ?? connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first
+        if let rootViewController = sceneWindow?.rootViewController as? FlutterViewController {
+            return rootViewController
+        }
+        return delegate?.window??.rootViewController as? FlutterViewController
+    }
+}
+
 public class NavigationFactory : NSObject, FlutterStreamHandler
 {
     var _navigationViewController: NavigationViewController? = nil
@@ -67,7 +86,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
     func startFreeDrive(arguments: NSDictionary?, result: @escaping FlutterResult)
     {
         let freeDriveViewController = FreeDriveViewController()
-        let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
+        guard let flutterViewController = UIApplication.shared.flutterRootViewController else { return }
         flutterViewController.present(freeDriveViewController, animated: true, completion: nil)
     }
     
@@ -131,8 +150,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
                     //show map to select a specific route
                     strongSelf._routes = routes
                     let routeOptionsView = RouteOptionsViewController(routes: routes, options: strongSelf._options!)
-                    
-                    let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
+
+                    guard let flutterViewController = UIApplication.shared.flutterRootViewController else { return }
                     flutterViewController.present(routeOptionsView, animated: true, completion: nil)
                 }
                 else
@@ -177,7 +196,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
             self._navigationViewController!.showsReportFeedback = _showReportFeedbackButton
             self._navigationViewController!.showsEndOfRouteFeedback = _showEndOfRouteFeedback
         }
-        let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
+        guard let flutterViewController = UIApplication.shared.flutterRootViewController else { return }
         flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
     }
     
